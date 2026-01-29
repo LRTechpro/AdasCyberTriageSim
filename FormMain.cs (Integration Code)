@@ -1,0 +1,133 @@
+﻿private HudMapPanel hudMapPanel;
+private HudMeter meterThreatLevel;
+private HudMeter meterChainIntegrity;
+private HudMeter meterAttackProgress;
+private ToastManager toastManager;
+private System.Windows.Forms.Timer animationTimer;
+
+private void InitializeHudUI()
+{
+    // Initialize theme
+    // (HudTheme uses static properties, no initialization needed)
+
+    // ===== HACKER MAP PANEL (Center-Left) =====
+    hudMapPanel = new HudMapPanel
+    {
+        Location = new Point(18, 78),
+        Size = new Size(540, 400),
+    };
+
+    // Define network stations
+    hudMapPanel.AddStation("OTA Cloud", 450, 80);
+    hudMapPanel.AddStation("Gateway", 150, 100);
+    hudMapPanel.AddStation("ADAS ECU", 300, 200);
+    hudMapPanel.AddStation("Camera", 100, 300);
+    hudMapPanel.AddStation("Radar", 500, 300);
+    hudMapPanel.AddStation("SOC", 300, 380);
+
+    // Set starting position
+    hudMapPanel.SetInitialStation("SOC");
+
+    pnlOverlay.Controls.Add(hudMapPanel);
+
+    // ===== METERS (Right Side) =====
+    meterThreatLevel = new HudMeter
+    {
+        Location = new Point(590, 78),
+        Size = new Size(280, 60),
+        Label = "THREAT LEVEL",
+        Value = 35
+    };
+
+    meterChainIntegrity = new HudMeter
+    {
+        Location = new Point(590, 150),
+        Size = new Size(280, 60),
+        Label = "CHAIN INTEGRITY",
+        Value = 85
+    };
+
+    meterAttackProgress = new HudMeter
+    {
+        Location = new Point(590, 222),
+        Size = new Size(280, 60),
+        Label = "ATTACK PROGRESS",
+        Value = 15
+    };
+
+    pnlOverlay.Controls.Add(meterThreatLevel);
+    pnlOverlay.Controls.Add(meterChainIntegrity);
+    pnlOverlay.Controls.Add(meterAttackProgress);
+
+    // ===== TOAST MANAGER =====
+    toastManager = new ToastManager(this);
+
+    // ===== ANIMATION TIMER (60 FPS) =====
+    animationTimer = new System.Windows.Forms.Timer
+    {
+        Interval = 16  // ~60 FPS
+    };
+    animationTimer.Tick += AnimationTimer_Tick;
+    animationTimer.Start();
+}
+
+private void AnimationTimer_Tick(object? sender, EventArgs e)
+{
+    // Update map animation
+    hudMapPanel.TickAnimation();
+
+    // Update meters (they self-animate)
+    // (HudMeter handles its own animation in OnPaint)
+}
+
+// Example game event: new threat appears, hacker moves to attack surface
+public void OnIncidentDetected(string affectedComponent)
+{
+    string stationMap = affectedComponent switch
+    {
+        "Front Camera" => "Camera",
+        "Front Radar" => "Radar",
+        "ADAS Domain Controller" => "ADAS ECU",
+        "Gateway" => "Gateway",
+        "OTA" => "OTA Cloud",
+        _ => "SOC"
+    };
+
+    hudMapPanel.MoveToStation(stationMap);
+    hudMapPanel.CompromiseStation(stationMap);
+    
+    toastManager.ShowToast($"🚨 Attack detected on {stationMap}!", ToastSeverity.Critical);
+}
+
+// Example: player action resolves the threat
+public void OnIncidentResolved(string affectedComponent)
+{
+    string stationMap = affectedComponent switch
+    {
+        "Front Camera" => "Camera",
+        "Front Radar" => "Radar",
+        "ADAS Domain Controller" => "ADAS ECU",
+        "Gateway" => "Gateway",
+        "OTA" => "OTA Cloud",
+        _ => "SOC"
+    };
+
+    hudMapPanel.RecoverStation(stationMap);
+    hudMapPanel.MoveToStation("SOC");
+    
+    toastManager.ShowToast($"✅ {stationMap} recovered!", ToastSeverity.Info);
+    
+    // Update meters
+    meterThreatLevel.Value -= 10;
+    meterChainIntegrity.Value += 5;
+}
+
+// Cleanup on form close
+protected override void OnFormClosing(FormClosingEventArgs e)
+{
+    animationTimer?.Stop();
+    animationTimer?.Dispose();
+    toastManager?.Cleanup();
+    HudTheme.Cleanup();
+    base.OnFormClosing(e);
+}
