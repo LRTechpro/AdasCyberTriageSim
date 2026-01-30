@@ -1,0 +1,71 @@
+# Asset Images Guide for ADAS Cyber Triage Sim
+
+## Folder Structure
+C:\Users\Owner\OneDrive\Documents\UAT\MS539 Programming Concepts\Projects\AdasCyberTriageSim\bin\Debug\net10.0\assets\
+
+## Recommended Image Specifications
+
+### Player Vehicle (vehicle.png)
+- **Size**: 36×42 pixels (or scale to fit)
+- **Content**: Top-down car/vehicle icon
+- **Style**: Cyberpunk/tech aesthetic
+- **Color**: Blue or cyan tones
+- **Examples**: 
+  - Car roof view with glowing accents
+  - Modern EV vehicle icon
+  - Autonomous vehicle symbol
+
+### Gate/Checkpoint (gate.png)
+- **Size**: Flexible (will scale to ~80×44)
+- **Content**: Security gate, checkpoint, or shield icon
+- **Style**: Positive/safe aesthetic
+- **Color**: Cyan or green tones with blue accents
+- **Examples**:
+  - Network gateway icon
+  - Security checkpoint
+  - Glowing portal/gate
+
+### Spinner/CAN Flood (spinner.png)
+- **Size**: Flexible (will scale to ~300×20)
+- **Content**: Rotating hazard, waves, or network attack icon
+- **Style**: Dangerous/warning aesthetic
+- **Color**: Orange/red warning colors
+- **Examples**:
+  - Spinning hazard symbol
+  - Data flood/wave pattern
+  - Network attack visualization
+
+### Threats (threat_*.png)
+Each ~80×54 pixels, unique per attack type:
+
+- **threat_ota.png** - OTA Downgrade
+  - Cloud with warning sign or firmware update icon
+  - Red/orange tones
+  
+- **threat_gateway.png** - Gateway Pivot
+  - Network routing or bridge icon with alert
+  - Red tones with network elements
+  
+- **threat_uds.png** - UDS Bruteforce
+  - Lock icon or brute force symbol
+  - Red security icon
+  
+- **threat_keys.png** - Key Reuse
+  - Duplicate/repeated key icon
+  - Red warning colors
+
+## Free Icon Sources
+
+1. **Feather Icons** (feathericons.com) - Minimal, clean
+2. **Ionicons** (ionicons.com) - Versatile, modern
+3. **Font Awesome** (fontawesome.com) - Comprehensive
+4. **Noun Project** (thenounproject.com) - Detailed icons
+5. **Flaticon** (flaticon.com) - Large collection
+6. **OpenGameArt** (opengameart.org) - Game-specific assets
+
+## Custom Design Tips
+
+- **Color Consistency**: Use cyberpunk theme (blues, cyans, neon accents)
+- **Transparency**: Use PNG with alpha channel for better blending
+- **Pixel Perfection**: Design at 2x size, then scale down for crispness
+- **Animation Ready**: Spinners should be symmetrical for smooth rotation
