@@ -123,6 +123,12 @@ This project is intended for:
 This is **not** a production game. It is a focused demonstration of applied engineering and security reasoning.
 
 ---
+## Architecture Note
+This project is intentionally structured into collapsible regions to reflect
+clear separation of concerns (assets, state, engine loop, rendering, UI).
+No gameplay logic is altered by this organization.
+
+---
 
 ## Future Enhancements
 
