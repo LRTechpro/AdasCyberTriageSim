@@ -140,8 +140,8 @@ namespace AdasCyberTriageSim
         // EDUCATIONAL NOTE: Dictionary is a REFERENCE TYPE (generic collection class).
         // It stores key-value pairs on the heap. The dictionary itself is referenced by this variable,
         // and modifications to the dictionary through any reference affect the same underlying object.
-        /// <summary>Dictionary of threat images keyed by threat type</summary>
-        private readonly Dictionary<string, Image?> _threatImages = new Dictionary<string, Image?>();
+        /// <summary>Dictionary of threat images keyed by TokenType for efficient lookup during rendering</summary>
+        private readonly Dictionary<TokenType, Image?> _threatImages = new Dictionary<TokenType, Image?>();
 
         /// <summary>Background image loaded from assets folder</summary>
         private Image? _backgroundImage;
@@ -234,11 +234,21 @@ namespace AdasCyberTriageSim
             // ============================================================
             // EDUCATIONAL NOTE: Another string[] array demonstrating array usage.
             // This array has 4 elements containing threat image filenames.
-            // We iterate through it to load each threat image into our dictionary.
-            string[] threatNames = { "threat_ota.png", "threat_gateway.png", "threat_uds.png", "threat_keys.png" };
-            foreach (var threat in threatNames)
+            // We iterate through it to load each threat image into our dictionary,
+            // keyed by TokenType for efficient lookup during rendering.
+            
+            // Map threat image files to their corresponding TokenTypes
+            var threatImageMap = new (TokenType token, string filename)[]
             {
-                _threatImages[threat] = _assetManager.LoadImage(threat);
+                (TokenType.ValidateOtaSignature, "threat_ota.png"),
+                (TokenType.SegmentCanGateway, "threat_gateway.png"),
+                (TokenType.LockUdsSession, "threat_uds.png"),
+                (TokenType.RotateEcuKeys, "threat_keys.png")
+            };
+
+            foreach (var (token, filename) in threatImageMap)
+            {
+                _threatImages[token] = _assetManager.LoadImage(filename);
             }
         }
 
@@ -1348,9 +1358,10 @@ namespace AdasCyberTriageSim
         /// </summary>
         private void DrawThreatWithPerspective(Graphics g, LaneObj o, RectangleF visualRect)
         {
-            string threatKey = o.Label.Split('\n')[0].Replace(" ", "_");
+            // Lookup threat image using TokenRequired field instead of parsing Label
+            // TokenRequired is always set when spawning threats and matches the dictionary key
             Image? threatImg = null;
-            if (_threatImages.TryGetValue(threatKey, out var img))
+            if (o.TokenRequired.HasValue && _threatImages.TryGetValue(o.TokenRequired.Value, out var img))
                 threatImg = img;
 
             if (threatImg != null)
@@ -1474,6 +1485,24 @@ namespace AdasCyberTriageSim
             return path;
         }
 
+        /// <summary>
+        /// Draws a simple depth shadow under an object to give a sense of elevation.
+        /// </summary>
+        private static void DrawWithDepthShadow(Graphics g, RectangleF rect, Color color)
+        {
+            using var br = new SolidBrush(Color.FromArgb(60, color));
+            var shadowRect = new RectangleF(rect.X + 3, rect.Y + 5, rect.Width, rect.Height);
+            g.FillEllipse(br, shadowRect);
+        }
+
+        /// <summary>
+        /// Draws a line from the top of the road (horizon) to the bottom of the road (player area) with perspective.
+        /// </summary>
+        private void DrawPerspectiveLine(Graphics g, Pen pen, int xTop, int xBottom)
+        {
+            g.DrawLine(pen, xTop, HORIZON_Y, xBottom, ROAD_BOTTOM_Y);
+        }
+
         #endregion
 
         #region Utilities
@@ -1487,63 +1516,39 @@ namespace AdasCyberTriageSim
             if (pnlLaneRunner == null)
                 return baseRect;
 
-            // EDUCATIONAL NOTE: All local variables here are VALUE TYPES (float).
-            // depthT, scale, cx, cy, newWidth, newHeight all store float values directly.
-            // The return value (RectangleF) is also a VALUE TYPE (struct).
-            // When we return the new RectangleF, the entire struct is COPIED to the caller.
+            // Calculate the vertical position as a ratio between horizon and road bottom
+            float y = baseRect.Y + baseRect.Height / 2f;
+            float t = (y - HORIZON_Y) / (ROAD_BOTTOM_Y - HORIZON_Y);
+            t = Math.Clamp(t, 0f, 1f);
 
-            // Calculate depth factor (0 at horizon, 1 at bottom)
-            float depthT = Math.Clamp((baseRect.Y - HORIZON_Y) / (ROAD_BOTTOM_Y - HORIZON_Y), 0f, 1f);
+            // Perspective scale: objects at the horizon are 55% of their size, at bottom 100%
+            float scale = 0.55f + 0.45f * t;
 
-            // Scale: 0.55 at top (horizon), up to 1.3 at bottom (player level)
-            float scale = 0.55f + depthT * 0.75f;
-
-            // Scale the rect about its center
+            // Center point
             float cx = baseRect.X + baseRect.Width / 2f;
             float cy = baseRect.Y + baseRect.Height / 2f;
 
             float newWidth = baseRect.Width * scale;
             float newHeight = baseRect.Height * scale;
 
-            return new RectangleF(cx - newWidth / 2f, cy - newHeight / 2f, newWidth, newHeight);
+            return new RectangleF(
+                cx - newWidth / 2f,
+                cy - newHeight / 2f,
+                newWidth,
+                newHeight
+            );
         }
 
         /// <summary>
-        /// Draws an object with a depth shadow to enhance 3D perspective effect.
+        /// Appends a message to the log TextBox, if available.
         /// </summary>
-        private void DrawWithDepthShadow(Graphics g, RectangleF visualRect, Color shadowColor)
+        private void AppendLog(string message)
         {
-            // Draw shadow below object (offset downward + alpha transparency)
-            float shadowOffsetY = visualRect.Height * 0.25f;
-            float shadowAlpha = 0.3f;
-
-            using (var shadowBrush = new SolidBrush(Color.FromArgb((int)(255 * shadowAlpha), shadowColor)))
-            {
-                g.FillRectangle(shadowBrush,
-                    visualRect.X,
-                    visualRect.Y + visualRect.Height + 2,
-                    visualRect.Width,
-                    shadowOffsetY);
-            }
+            if (txtLog == null) return;
+            txtLog.AppendText($"{DateTime.Now:HH:mm:ss}  {message}{Environment.NewLine}");
+            txtLog.SelectionStart = txtLog.Text.Length;
+            txtLog.ScrollToCaret();
         }
-
-        /// <summary>
-        /// Draws a line from point (topX, topY) to (bottomX, bottomY) representing a perspective line.
-        /// </summary>
-        private void DrawPerspectiveLine(Graphics g, Pen pen, int topX, int bottomX)
-        {
-            g.DrawLine(pen, topX, HORIZON_Y, bottomX, ROAD_BOTTOM_Y);
-        }
-
-        /// <summary>
-        /// Appends a timestamped message to the log text box.
-        /// </summary>
-        private void AppendLog(string msg)
-        {
-            if (txtLog != null)
-                txtLog.AppendText($"[{DateTime.Now:HH:mm:ss}] {msg}\r\n");
-        }
-
         #endregion
     }
 }
