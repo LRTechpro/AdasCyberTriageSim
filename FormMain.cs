@@ -9,6 +9,32 @@ using System.Windows.Forms;
 namespace AdasCyberTriageSim
 {
     /// <summary>
+    /// Custom panel for the lane runner game, supports background image.
+    /// </summary>
+    public class GamePanel : Panel
+    {
+        private Image? _backgroundImage;
+
+        public void SetBackgroundImage(Image? img)
+        {
+            _backgroundImage = img;
+            this.Invalidate();
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            if (_backgroundImage != null)
+            {
+                e.Graphics.DrawImage(_backgroundImage, this.ClientRectangle);
+            }
+            else
+            {
+                base.OnPaintBackground(e);
+            }
+        }
+    }
+
+    /// <summary>
     /// ADAS Cyber Triage Simulator - An arcade-style lane-runner game that teaches 
     /// automotive cybersecurity concepts through interactive gameplay.
     /// 
@@ -159,6 +185,25 @@ namespace AdasCyberTriageSim
             }
         }
 
+        /// <summary>
+        /// Loads game asset images from the asset manager into memory.
+        /// </summary>
+        private void LoadGameAssets()
+        {
+            if (_assetManager == null) return;
+
+            _imgPlayerVehicle = _assetManager.LoadImage("vehicle.png");
+            _imgGate = _assetManager.LoadImage("gate.png");
+            _imgSpinner = _assetManager.LoadImage("spinner.png");
+
+            // Load threat images
+            string[] threatNames = { "threat_ota.png", "threat_gateway.png", "threat_uds.png", "threat_keys.png" };
+            foreach (var threat in threatNames)
+            {
+                _threatImages[threat] = _assetManager.LoadImage(threat);
+            }
+        }
+
         #endregion
 
         #region Construction
@@ -294,6 +339,41 @@ namespace AdasCyberTriageSim
 
         /// <summary>Font for drawing labels on game objects</summary>
         private readonly Font _fObj = new Font("Segoe UI", 9, FontStyle.Bold);
+
+        // ============================================================
+        // UI LAYOUT CONSTANTS
+        // ============================================================
+
+        /// <summary>Height of the HUD area at the top of the game panel (reserved for score, time, etc.)</summary>
+        private const int HUD_HEIGHT = 52;
+
+        /// <summary>Width of the legend box</summary>
+        private const float LEGEND_WIDTH = 280f;
+
+        /// <summary>Margin from right edge for legend</summary>
+        private const float LEGEND_RIGHT_MARGIN = 12f;
+
+        // ============================================================
+        // PSEUDO-3D PERSPECTIVE CONSTANTS
+        // ============================================================
+
+        /// <summary>Y coordinate of the horizon line (where objects appear smallest)</summary>
+        private const int HORIZON_Y = HUD_HEIGHT + 28;
+
+        /// <summary>Y coordinate of the bottom of the road (player position area)</summary>
+        private int ROAD_BOTTOM_Y => pnlLaneRunner?.Height ?? 520;
+
+        /// <summary>Left edge of road at bottom (widest point)</summary>
+        private const int ROAD_LEFT_BOTTOM = 20;
+
+        /// <summary>Right edge of road at bottom (widest point)</summary>
+        private int ROAD_RIGHT_BOTTOM => pnlLaneRunner?.Width - 20 ?? 520;
+
+        /// <summary>Left edge of road at horizon (narrowest point)</summary>
+        private const int ROAD_LEFT_TOP = 120;
+
+        /// <summary>Right edge of road at horizon (narrowest point)</summary>
+        private int ROAD_RIGHT_TOP => pnlLaneRunner?.Width - 120 ?? 300;
 
         #endregion
 
@@ -440,91 +520,134 @@ namespace AdasCyberTriageSim
 
             if (pnlLaneRunner is GamePanel gamePanel)
                 gamePanel.SetBackgroundImage(_backgroundImage);
-        }
 
-        /// <summary>
-        /// Loads all game asset images from the assets folder.
-        /// Uses fallback rendering if images are not found.
-        /// </summary>
-        private void LoadGameAssets()
-        {
-            if (_assetManager == null) return;
-
-            // Load main game object images
-            _imgPlayerVehicle = _assetManager.LoadImage("vehicle.png") ?? _assetManager.LoadImage("vehicle.jpg");
-            _imgGate = _assetManager.LoadImage("gate.png") ?? _assetManager.LoadImage("gate.jpg");
-            _imgSpinner = _assetManager.LoadImage("spinner.png") ?? _assetManager.LoadImage("spinner.jpg");
-
-            // Load threat-specific images
-            _threatImages["OTA_Downgrade"] = _assetManager.LoadImage("threat_ota.png");
-            _threatImages["Gateway_Pivot"] = _assetManager.LoadImage("threat_gateway.png");
-            _threatImages["UDS_Bruteforce"] = _assetManager.LoadImage("threat_uds.png");
-            _threatImages["Key_Reuse"] = _assetManager.LoadImage("threat_keys.png");
-
-            AppendLog("Game assets loaded (using fallback rendering if images unavailable)");
-        }
-
-        /// <summary>
-        /// Custom Panel with double buffering and background image support.
-        /// Draws the background image with aspect-ratio preservation (cover mode).
-        /// </summary>
-        private class GamePanel : Panel
-        {
-            private Image? _backgroundImage;
-
-            public GamePanel()
+            // ===== CREATE LEGEND UI CONTAINER (OUTSIDE GAME CANVAS) =====
+            var grpLegend = new GroupBox
             {
-                DoubleBuffered = true;
-            }
+                Text = "LEGEND — What each object means",
+                Location = new Point(pnlLaneRunner.Right + 12, pnlLaneRunner.Top),
+                Size = new Size(320, 420),
+                ForeColor = HudTheme.C_CYAN,
+                BackColor = Color.FromArgb(220, 18, 20, 28),
+                Font = new Font("Segoe UI", 11, FontStyle.Bold)
+            };
 
-            /// <summary>Sets the background image to be drawn (cached, not reloaded per frame).</summary>
-            public void SetBackgroundImage(Image? image)
-            {
-                _backgroundImage = image;
-            }
+            int legendY = 28;
+            int legendItemHeight = 90;
 
-            protected override void OnPaintBackground(PaintEventArgs e)
+            // Gate legend item
+            var pnlGateIcon = new Panel
             {
-                // Don't call base - we're handling the background completely
-                
-                // Draw the background image with aspect ratio preservation (cover mode)
-                if (_backgroundImage != null)
-                {
-                    var rect = this.ClientRectangle;
-                    
-                    // Calculate dimensions to fill panel while maintaining aspect ratio (cover mode)
-                    float imgRatio = (float)_backgroundImage.Width / _backgroundImage.Height;
-                    float panelRatio = (float)rect.Width / rect.Height;
-                    
-                    int drawWidth, drawHeight, drawX, drawY;
-                    
-                    if (imgRatio > panelRatio)
-                    {
-                        // Image is wider - fit to height, crop sides
-                        drawHeight = rect.Height;
-                        drawWidth = (int)(drawHeight * imgRatio);
-                        drawX = (rect.Width - drawWidth) / 2;
-                        drawY = 0;
-                    }
-                    else
-                    {
-                        // Image is taller - fit to width, crop top/bottom
-                        drawWidth = rect.Width;
-                        drawHeight = (int)(drawWidth / imgRatio);
-                        drawX = 0;
-                        drawY = (rect.Height - drawHeight) / 2;
-                    }
-                    
-                    e.Graphics.DrawImage(_backgroundImage, drawX, drawY, drawWidth, drawHeight);
-                }
-                else
-                {
-                    // Fallback color if no image
-                    e.Graphics.Clear(Color.FromArgb(10, 12, 16));
-                }
-            }
+                Location = new Point(16, legendY),
+                Size = new Size(40, 40),
+                BackColor = Color.FromArgb(220, 30, 90, 140),
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            grpLegend.Controls.Add(pnlGateIcon);
+
+            var lblGateShort = new Label
+            {
+                Text = "Gate (Control): +Points +Token",
+                Location = new Point(66, legendY),
+                Size = new Size(240, 24),
+                ForeColor = HudTheme.C_TEXT,
+                BackColor = Color.Transparent,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+            };
+            grpLegend.Controls.Add(lblGateShort);
+
+            var lblGateDesc = new Label
+            {
+                Text = "Deployed defense control. Grants tokens for threat mitigation (6s).",
+                Location = new Point(66, legendY + 26),
+                Size = new Size(240, 50),
+                ForeColor = Color.FromArgb(200, HudTheme.C_TEXT),
+                BackColor = Color.Transparent,
+                Font = new Font("Segoe UI", 9)
+            };
+            grpLegend.Controls.Add(lblGateDesc);
+
+            // Threat legend item
+            legendY += legendItemHeight;
+            var pnlThreatIcon = new Panel
+            {
+                Location = new Point(16, legendY),
+                Size = new Size(40, 40),
+                BackColor = Color.FromArgb(220, 120, 35, 35),
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            grpLegend.Controls.Add(pnlThreatIcon);
+
+            var lblThreatShort = new Label
+            {
+                Text = "Threat (Attack): -Posture OR +Points",
+                Location = new Point(66, legendY),
+                Size = new Size(240, 24),
+                ForeColor = HudTheme.C_TEXT,
+                BackColor = Color.Transparent,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+            };
+            grpLegend.Controls.Add(lblThreatShort);
+
+            var lblThreatDesc = new Label
+            {
+                Text = "Token-gated event. Neutralize with matching control; otherwise take damage.",
+                Location = new Point(66, legendY + 26),
+                Size = new Size(240, 50),
+                ForeColor = Color.FromArgb(200, HudTheme.C_TEXT),
+                BackColor = Color.Transparent,
+                Font = new Font("Segoe UI", 9)
+            };
+            grpLegend.Controls.Add(lblThreatDesc);
+
+            // Spinner/CAN Flood legend item
+            legendY += legendItemHeight;
+            var pnlSpinnerIcon = new Panel
+            {
+                Location = new Point(16, legendY),
+                Size = new Size(40, 40),
+                BackColor = Color.FromArgb(230, 180, 100, 30),
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            grpLegend.Controls.Add(pnlSpinnerIcon);
+
+            var lblSpinnerShort = new Label
+            {
+                Text = "CAN Flood (DoS): -Posture",
+                Location = new Point(66, legendY),
+                Size = new Size(240, 24),
+                ForeColor = HudTheme.C_TEXT,
+                BackColor = Color.Transparent,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+            };
+            grpLegend.Controls.Add(lblSpinnerShort);
+
+            var lblSpinnerDesc = new Label
+            {
+                Text = "Broadcast attack. Not blockable—avoid or absorb damage.",
+                Location = new Point(66, legendY + 26),
+                Size = new Size(240, 50),
+                ForeColor = Color.FromArgb(200, HudTheme.C_TEXT),
+                BackColor = Color.Transparent,
+                Font = new Font("Segoe UI", 9)
+            };
+            grpLegend.Controls.Add(lblSpinnerDesc);
+
+            // Footer
+            legendY += legendItemHeight;
+            var lblFooter = new Label
+            {
+                Text = "Posture = vehicle security integrity. 0 = unsafe.",
+                Location = new Point(16, legendY + 8),
+                Size = new Size(280, 24),
+                ForeColor = Color.FromArgb(180, HudTheme.C_TEXT),
+                BackColor = Color.Transparent,
+                Font = new Font("Segoe UI", 9, FontStyle.Italic)
+            };
+            grpLegend.Controls.Add(lblFooter);
+
+            this.Controls.Add(grpLegend);
         }
-
         #endregion
 
         #region Engine (Tick / Spawn / Collisions)
@@ -702,6 +825,7 @@ namespace AdasCyberTriageSim
 
         /// <summary>
         /// Checks for collisions between the player and all objects.
+        /// Uses visual (perspective-scaled) rectangles for accurate collision detection.
         /// Handles three cases: Gates (always beneficial), Spinners (always harmful),
         /// and Threats (conditional based on token match).
         /// </summary>
@@ -709,30 +833,29 @@ namespace AdasCyberTriageSim
         {
             if (pnlLaneRunner == null) return;
 
-            RectangleF p = _player;
+            RectangleF visualPlayer = GetVisualRect(_player);
 
             for (int i = _laneObjs.Count - 1; i >= 0; i--)
             {
                 var o = _laneObjs[i];
-                if (!p.IntersectsWith(o.Rect)) continue;
+                RectangleF visualObj = GetVisualRect(o.Rect);
+                
+                if (!visualPlayer.IntersectsWith(visualObj)) continue;
 
                 // ===== GATE COLLISION: Always grants points and possibly a token =====
                 if (o.Kind == ObjKind.Gate)
                 {
-                    // Award points based on multiplier (x2 or x3) and current scroll speed
                     int mult = (int)o.Mult;
                     int gain = 25 * mult + (int)(_scrollSpeed * 2);
                     _score += gain;
                     _streak += 1;
 
-                    // Grant the associated security token (6-second duration)
                     if (o.TokenGranted.HasValue)
                     {
                         _activeToken = o.TokenGranted.Value;
                         _tokenTimeLeftMs = 6000;
                     }
 
-                    // Play success sound
                     System.Media.SystemSounds.Asterisk.Play();
                     _laneObjs.RemoveAt(i);
                     continue;
@@ -741,13 +864,11 @@ namespace AdasCyberTriageSim
                 // ===== SPINNER COLLISION: Fleet-wide CAN flood attack, always harmful =====
                 if (o.Kind == ObjKind.Spinner)
                 {
-                    // Damage posture and reset streak
                     _postureUnits -= o.Damage;
                     _streak = 0;
                     System.Media.SystemSounds.Exclamation.Play();
 
-                    // Push the player away from the Spinner
-                    float push = (p.X + p.Width / 2f) < (o.Rect.X + o.Rect.Width / 2f) ? -18 : 18;
+                    float push = (visualPlayer.X + visualPlayer.Width / 2f) < (visualObj.X + visualObj.Width / 2f) ? -18 : 18;
                     _player.X = Math.Clamp(_player.X + push, 18, pnlLaneRunner.Width - _player.Width - 18);
 
                     _laneObjs.RemoveAt(i);
@@ -757,12 +878,10 @@ namespace AdasCyberTriageSim
                 // ===== THREAT COLLISION: Conditional damage based on token match =====
                 if (o.Kind == ObjKind.Threat)
                 {
-                    // Check if player has the required token to neutralize this Threat
                     bool protectedOk = o.TokenRequired.HasValue && _activeToken.HasValue && o.TokenRequired.Value == _activeToken.Value;
 
                     if (protectedOk)
                     {
-                        // Token matches: safe neutralization, grant points
                         int gain = 45 + (int)(_scrollSpeed * 4);
                         _score += gain;
                         _streak += 1;
@@ -770,7 +889,6 @@ namespace AdasCyberTriageSim
                     }
                     else
                     {
-                        // No token or wrong token: take damage and lose streak
                         _postureUnits -= o.Damage;
                         _streak = 0;
                         System.Media.SystemSounds.Hand.Play();
@@ -945,6 +1063,7 @@ namespace AdasCyberTriageSim
 
         /// <summary>
         /// Renders the entire game view: background, lane dividers, objects, player, and warnings.
+        /// Includes pseudo-3D perspective rendering.
         /// </summary>
         private void DrawRunner(Graphics g)
         {
@@ -956,34 +1075,49 @@ namespace AdasCyberTriageSim
             using (var br = new SolidBrush(Color.FromArgb(120, 0, 0, 0)))
                 g.FillRectangle(br, pnlLaneRunner.ClientRectangle);
 
-            // Draw lane divider lines to show the three lanes
+            // Draw HUD background (semi-transparent bar at top)
+            using (var br = new SolidBrush(Color.FromArgb(140, 0, 0, 0)))
+                g.FillRectangle(br, 0, 0, pnlLaneRunner.Width, HUD_HEIGHT);
+
+            // ===== DRAW PERSPECTIVE ROAD EDGES AND LANES =====
             using (var pen = new Pen(Color.FromArgb(50, HudTheme.C_CYAN), 2))
             {
-                int top = 40;
-                int bottom = pnlLaneRunner.Height;
-                int left = 20;
-                int right = pnlLaneRunner.Width - 20;
-                g.DrawLine(pen, left, top, left, bottom);
-                g.DrawLine(pen, right, top, right, bottom);
-
-                float laneW = (pnlLaneRunner.Width - 60) / 3f;
-                g.DrawLine(pen, 20 + laneW, top, 20 + laneW, bottom);
-                g.DrawLine(pen, 20 + laneW * 2, top, 20 + laneW * 2, bottom);
+                // Left road edge (converges to left-top)
+                DrawPerspectiveLine(g, pen, ROAD_LEFT_TOP, ROAD_LEFT_BOTTOM);
+                
+                // Right road edge (converges to right-top)
+                g.DrawLine(pen, ROAD_RIGHT_TOP, HORIZON_Y, ROAD_RIGHT_BOTTOM, ROAD_BOTTOM_Y);
+                
+                // Left lane divider (1/3 of road)
+                float laneLeftBottom = ROAD_LEFT_BOTTOM + (ROAD_RIGHT_BOTTOM - ROAD_LEFT_BOTTOM) / 3f;
+                float laneLeftTop = ROAD_LEFT_TOP + (ROAD_RIGHT_TOP - ROAD_LEFT_TOP) / 3f;
+                g.DrawLine(pen, (int)laneLeftTop, HORIZON_Y, (int)laneLeftBottom, ROAD_BOTTOM_Y);
+                
+                // Right lane divider (2/3 of road)
+                float laneRightBottom = ROAD_LEFT_BOTTOM + (ROAD_RIGHT_BOTTOM - ROAD_LEFT_BOTTOM) * 2f / 3f;
+                float laneRightTop = ROAD_LEFT_TOP + (ROAD_RIGHT_TOP - ROAD_LEFT_TOP) * 2f / 3f;
+                g.DrawLine(pen, (int)laneRightTop, HORIZON_Y, (int)laneRightBottom, ROAD_BOTTOM_Y);
             }
 
-            // Draw all objects
+            // Draw all objects (skip any that are in the HUD reserved area)
             foreach (var o in _laneObjs)
             {
+                // Skip objects entirely within or partially overlapping HUD area
+                if (o.Rect.Bottom < HUD_HEIGHT)
+                    continue;
+
+                RectangleF visualRect = GetVisualRect(o.Rect);
+
                 if (o.Kind == ObjKind.Gate)
-                    DrawGate(g, o);
+                    DrawGateWithPerspective(g, o, visualRect);
                 else if (o.Kind == ObjKind.Spinner)
-                    DrawSpinner(g, o);
+                    DrawSpinnerWithPerspective(g, o, visualRect);
                 else
-                    DrawThreat(g, o);
+                    DrawThreatWithPerspective(g, o, visualRect);
             }
 
-            // Draw the player vehicle
-            DrawPlayerVehicle(g);
+            // Draw the player vehicle with perspective
+            DrawPlayerVehicleWithPerspective(g);
 
             // Draw posture critical warning if health is low
             if (_postureUnits <= 3)
@@ -994,55 +1128,33 @@ namespace AdasCyberTriageSim
         }
 
         /// <summary>
-        /// Draws the player vehicle using an image if available, otherwise fallback to shape.
+        /// Renders a Gate object with perspective scaling and shadow.
         /// </summary>
-        private void DrawPlayerVehicle(Graphics g)
-        {
-            if (_imgPlayerVehicle != null)
-            {
-                // Draw vehicle image with slight transparency
-                g.DrawImage(_imgPlayerVehicle, _player.X, _player.Y, _player.Width, _player.Height);
-            }
-            else
-            {
-                // Fallback: draw rounded rectangle vehicle
-                using (var br = new SolidBrush(Color.FromArgb(220, 70, 130, 255)))
-                    DrawRoundedRect(g, br, _player, 10);
-                using (var pen = new Pen(Color.FromArgb(220, HudTheme.C_CYAN), 2))
-                    DrawRoundedRectOutline(g, pen, _player, 10);
-            }
-        }
-
-        /// <summary>
-        /// Renders a Gate object with image (if available) or shape fallback.
-        /// </summary>
-        private void DrawGate(Graphics g, LaneObj o)
+        private void DrawGateWithPerspective(Graphics g, LaneObj o, RectangleF visualRect)
         {
             if (_imgGate != null)
             {
-                // Draw gate image
-                g.DrawImage(_imgGate, o.Rect.X, o.Rect.Y, o.Rect.Width, o.Rect.Height);
+                g.DrawImage(_imgGate, visualRect.X, visualRect.Y, visualRect.Width, visualRect.Height);
             }
             else
             {
-                // Fallback: colored shape
                 using var br = new SolidBrush(Color.FromArgb(220, 30, 90, 140));
-                DrawRoundedRect(g, br, o.Rect, 10);
+                DrawRoundedRect(g, br, visualRect, 10);
                 using var pen = new Pen(Color.FromArgb(200, HudTheme.C_CYAN), 2);
-                DrawRoundedRectOutline(g, pen, o.Rect, 10);
+                DrawRoundedRectOutline(g, pen, visualRect, 10);
             }
 
-            // Always draw the label text on top
+            DrawWithDepthShadow(g, visualRect, Color.FromArgb(30, 90, 140));
+
             using var brText = new SolidBrush(HudTheme.C_TEXT);
-            DrawCentered(g, o.Label, _fObj, brText, o.Rect);
+            DrawCentered(g, o.Label, _fObj, brText, visualRect);
         }
 
         /// <summary>
-        /// Renders a Threat object with image (if available) or shape fallback.
+        /// Renders a Threat object with perspective scaling and shadow.
         /// </summary>
-        private void DrawThreat(Graphics g, LaneObj o)
+        private void DrawThreatWithPerspective(Graphics g, LaneObj o, RectangleF visualRect)
         {
-            // Try to get threat-specific image
             string threatKey = o.Label.Split('\n')[0].Replace(" ", "_");
             Image? threatImg = null;
             if (_threatImages.TryGetValue(threatKey, out var img))
@@ -1050,31 +1162,30 @@ namespace AdasCyberTriageSim
 
             if (threatImg != null)
             {
-                // Draw threat image
-                g.DrawImage(threatImg, o.Rect.X, o.Rect.Y, o.Rect.Width, o.Rect.Height);
+                g.DrawImage(threatImg, visualRect.X, visualRect.Y, visualRect.Width, visualRect.Height);
             }
             else
             {
-                // Fallback: colored shape
                 using var br = new SolidBrush(Color.FromArgb(220, 120, 35, 35));
-                DrawRoundedRect(g, br, o.Rect, 12);
+                DrawRoundedRect(g, br, visualRect, 12);
                 using var pen = new Pen(Color.FromArgb(220, HudTheme.C_BAD), 2);
-                DrawRoundedRectOutline(g, pen, o.Rect, 12);
+                DrawRoundedRectOutline(g, pen, visualRect, 12);
             }
 
-            // Always draw the label text on top
+            DrawWithDepthShadow(g, visualRect, Color.FromArgb(120, 35, 35));
+
             using var brText = new SolidBrush(HudTheme.C_TEXT);
-            DrawCentered(g, o.Label, _fObj, brText, o.Rect);
+            DrawCentered(g, o.Label, _fObj, brText, visualRect);
         }
 
         /// <summary>
-        /// Renders a Spinner object with rotation animation and image (if available).
+        /// Renders a Spinner object with perspective scaling, rotation, and shadow.
         /// </summary>
-        private void DrawSpinner(Graphics g, LaneObj o)
+        private void DrawSpinnerWithPerspective(Graphics g, LaneObj o, RectangleF visualRect)
         {
             // Calculate center point for rotation
-            var cx = o.Rect.X + o.Rect.Width / 2f;
-            var cy = o.Rect.Y + o.Rect.Height / 2f;
+            var cx = visualRect.X + visualRect.Width / 2f;
+            var cy = visualRect.Y + visualRect.Height / 2f;
 
             // Apply rotation transformation
             g.TranslateTransform(cx, cy);
@@ -1083,24 +1194,44 @@ namespace AdasCyberTriageSim
 
             if (_imgSpinner != null)
             {
-                // Draw spinner image with rotation
-                g.DrawImage(_imgSpinner, o.Rect.X, o.Rect.Y, o.Rect.Width, o.Rect.Height);
+                g.DrawImage(_imgSpinner, visualRect.X, visualRect.Y, visualRect.Width, visualRect.Height);
             }
             else
             {
-                // Fallback: rotating shape
                 using var br = new SolidBrush(Color.FromArgb(230, 30, 30, 30));
-                g.FillRectangle(br, o.Rect.X, o.Rect.Y, o.Rect.Width, o.Rect.Height);
+                g.FillRectangle(br, visualRect.X, visualRect.Y, visualRect.Width, visualRect.Height);
                 using var pen = new Pen(Color.FromArgb(220, HudTheme.C_WARN), 2);
-                g.DrawRectangle(pen, o.Rect.X, o.Rect.Y, o.Rect.Width, o.Rect.Height);
+                g.DrawRectangle(pen, visualRect.X, visualRect.Y, visualRect.Width, visualRect.Height);
             }
 
-            // Reset transformation
             g.ResetTransform();
 
-            // Draw label above the spinner
+            DrawWithDepthShadow(g, visualRect, Color.FromArgb(80, 80, 0));
+
             using var brText = new SolidBrush(HudTheme.C_WARN);
-            g.DrawString("CAN FLOOD", _fObj, brText, o.Rect.X + 10, o.Rect.Y - 18);
+            g.DrawString("CAN FLOOD", _fObj, brText, visualRect.X + 10, visualRect.Y - 18);
+        }
+
+        /// <summary>
+        /// Draws the player vehicle with perspective scaling and shadow.
+        /// </summary>
+        private void DrawPlayerVehicleWithPerspective(Graphics g)
+        {
+            RectangleF visualPlayer = GetVisualRect(_player);
+
+            if (_imgPlayerVehicle != null)
+            {
+                g.DrawImage(_imgPlayerVehicle, visualPlayer.X, visualPlayer.Y, visualPlayer.Width, visualPlayer.Height);
+            }
+            else
+            {
+                using (var br = new SolidBrush(Color.FromArgb(220, 70, 130, 255)))
+                    DrawRoundedRect(g, br, visualPlayer, 10);
+                using (var pen = new Pen(Color.FromArgb(220, HudTheme.ColorYellow), 2))
+                    DrawRoundedRectOutline(g, pen, visualPlayer, 10);
+            }
+
+            DrawWithDepthShadow(g, visualPlayer, Color.FromArgb(70, 130, 255));
         }
 
         /// <summary>
@@ -1153,6 +1284,58 @@ namespace AdasCyberTriageSim
         #endregion
 
         #region Utilities
+
+        /// <summary>
+        /// Calculates the visual rectangle for an object based on depth perspective.
+        /// Objects farther up (closer to horizon) appear smaller; objects at bottom appear larger.
+        /// </summary>
+        private RectangleF GetVisualRect(RectangleF baseRect)
+        {
+            if (pnlLaneRunner == null)
+                return baseRect;
+
+            // Calculate depth factor (0 at horizon, 1 at bottom)
+            float depthT = Math.Clamp((baseRect.Y - HORIZON_Y) / (ROAD_BOTTOM_Y - HORIZON_Y), 0f, 1f);
+            
+            // Scale: 0.55 at top (horizon), up to 1.3 at bottom (player level)
+            float scale = 0.55f + depthT * 0.75f;
+            
+            // Scale the rect about its center
+            float cx = baseRect.X + baseRect.Width / 2f;
+            float cy = baseRect.Y + baseRect.Height / 2f;
+            
+            float newWidth = baseRect.Width * scale;
+            float newHeight = baseRect.Height * scale;
+            
+            return new RectangleF(cx - newWidth / 2f, cy - newHeight / 2f, newWidth, newHeight);
+        }
+
+        /// <summary>
+        /// Draws an object with a depth shadow to enhance 3D perspective effect.
+        /// </summary>
+        private void DrawWithDepthShadow(Graphics g, RectangleF visualRect, Color shadowColor)
+        {
+            // Draw shadow below object (offset downward + alpha transparency)
+            float shadowOffsetY = visualRect.Height * 0.25f;
+            float shadowAlpha = 0.3f;
+            
+            using (var shadowBrush = new SolidBrush(Color.FromArgb((int)(255 * shadowAlpha), shadowColor)))
+            {
+                g.FillRectangle(shadowBrush, 
+                    visualRect.X, 
+                    visualRect.Y + visualRect.Height + 2, 
+                    visualRect.Width, 
+                    shadowOffsetY);
+            }
+        }
+
+        /// <summary>
+        /// Draws a line from point (topX, topY) to (bottomX, bottomY) representing a perspective line.
+        /// </summary>
+        private void DrawPerspectiveLine(Graphics g, Pen pen, int topX, int bottomX)
+        {
+            g.DrawLine(pen, topX, HORIZON_Y, bottomX, ROAD_BOTTOM_Y);
+        }
 
         /// <summary>
         /// Appends a timestamped message to the log text box.
