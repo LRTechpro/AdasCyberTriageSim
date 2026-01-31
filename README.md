@@ -89,6 +89,14 @@ Core gameplay logic is implemented in `FormMain.cs`.
 
 ## Running the Project
 
+---
+## Gameplay Screenshots
+
+![Run Start](screenshots/adascybertri_sim_1.png)
+![CAN Flood Event](screenshots/adascybertri_sim_2.png)
+![Threat & Token Interaction](screenshots/adascybertri_sim_3.png)
+---
+
 ### Requirements
 - Windows
 - Visual Studio
