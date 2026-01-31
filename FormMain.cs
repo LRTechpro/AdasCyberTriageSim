@@ -383,6 +383,7 @@ namespace AdasCyberTriageSim
         // TYPE DEFINITIONS
         // ============================================================
 
+        // Enums define the only valid states — this prevents ambiguity and impossible values     
         /// <summary>Kind of lane object: Gate (collectible), Spinner (attack), or Threat (conditional attack)</summary>
         private enum ObjKind { Gate, Spinner, Threat }
 
