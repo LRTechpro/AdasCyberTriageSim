@@ -107,9 +107,24 @@ namespace AdasCyberTriageSim
             }
         }
 
+        // ============================================================
+        // REFERENCE TYPE EXAMPLE: AssetManager instance
+        // ============================================================
+        // EDUCATIONAL NOTE: AssetManager is a REFERENCE TYPE (class).
+        // When we assign _assetManager, we're storing a REFERENCE (memory address) to the object,
+        // not the object itself. Multiple variables can reference the same object in memory.
+        // If we passed _assetManager to another method and that method modified it, 
+        // our reference would see those changes because it points to the same object in heap memory.
         /// <summary>Manages loading and caching of game images</summary>
         private AssetManager? _assetManager;
 
+        // ============================================================
+        // REFERENCE TYPE EXAMPLES: Image objects (stored on heap)
+        // ============================================================
+        // EDUCATIONAL NOTE: Image is a REFERENCE TYPE (class from System.Drawing).
+        // These variables store REFERENCES to Image objects in heap memory, not the images themselves.
+        // When we pass an Image to a drawing method, we're passing the reference (pointer),
+        // not copying the entire image data. This is memory-efficient for large objects.
         /// <summary>Player vehicle icon image</summary>
         private Image? _imgPlayerVehicle;
 
@@ -119,6 +134,12 @@ namespace AdasCyberTriageSim
         /// <summary>Spinner/CAN Flood icon image</summary>
         private Image? _imgSpinner;
 
+        // ============================================================
+        // REFERENCE TYPE EXAMPLE: Dictionary collection
+        // ============================================================
+        // EDUCATIONAL NOTE: Dictionary is a REFERENCE TYPE (generic collection class).
+        // It stores key-value pairs on the heap. The dictionary itself is referenced by this variable,
+        // and modifications to the dictionary through any reference affect the same underlying object.
         /// <summary>Dictionary of threat images keyed by threat type</summary>
         private readonly Dictionary<string, Image?> _threatImages = new Dictionary<string, Image?>();
 
@@ -132,15 +153,27 @@ namespace AdasCyberTriageSim
         private void GenerateAssetsIfNeeded()
         {
             string assetPath = Path.Combine(AppContext.BaseDirectory, "assets");
-            
-            // Check if all assets already exist
-            string[] requiredAssets = 
+
+            // ============================================================
+            // ARRAY TYPE EXAMPLE: Explicit string array for required assets
+            // ============================================================
+            // EDUCATIONAL NOTE: string[] is an ARRAY type (which is a REFERENCE TYPE).
+            // Arrays in C# are reference types even when they contain value types.
+            // The variable 'requiredAssets' stores a REFERENCE to an array object in heap memory.
+            // The array has a fixed size (7 elements) determined at initialization.
+            // Each element in the array is a string (also a reference type).
+            // Arrays provide indexed access: requiredAssets[0], requiredAssets[1], etc.
+            string[] requiredAssets =
             {
                 "vehicle.png", "gate.png", "spinner.png",
                 "threat_ota.png", "threat_gateway.png", "threat_uds.png", "threat_keys.png"
             };
 
+            // EDUCATIONAL NOTE: 'allAssetsExist' is a VALUE TYPE (bool).
+            // bool is a value type that stores true/false directly in stack memory.
+            // When we assign or pass a bool, we're copying the actual value, not a reference.
             bool allAssetsExist = true;
+
             foreach (var asset in requiredAssets)
             {
                 if (!File.Exists(Path.Combine(assetPath, asset)))
@@ -196,7 +229,12 @@ namespace AdasCyberTriageSim
             _imgGate = _assetManager.LoadImage("gate.png");
             _imgSpinner = _assetManager.LoadImage("spinner.png");
 
-            // Load threat images
+            // ============================================================
+            // ARRAY TYPE EXAMPLE: string array for threat filenames
+            // ============================================================
+            // EDUCATIONAL NOTE: Another string[] array demonstrating array usage.
+            // This array has 4 elements containing threat image filenames.
+            // We iterate through it to load each threat image into our dictionary.
             string[] threatNames = { "threat_ota.png", "threat_gateway.png", "threat_uds.png", "threat_keys.png" };
             foreach (var threat in threatNames)
             {
@@ -227,22 +265,22 @@ namespace AdasCyberTriageSim
 
             // Load and display the cyberpunk background image
             LoadBackgroundImage();
-            
+
             // Set the background image directly on the form
             if (_backgroundImage != null)
             {
                 this.BackgroundImage = _backgroundImage;
                 this.BackgroundImageLayout = ImageLayout.Stretch; // Fills entire form, stretching as needed
             }
-            
+
             this.DoubleBuffered = true;
-            
+
             // Build the lane runner game UI (panel, HUD, timer)
             BuildLaneRunnerUi();
-            
+
             // Add the lane runner panel to the form
             this.Controls.Add(pnlLaneRunner);
-            
+
             // Add and configure the "Start Run" button to begin a game session
             btnStartRun = new Button
             {
@@ -266,113 +304,190 @@ namespace AdasCyberTriageSim
         #region State (Fields)
 
         // ============================================================
-        // FIELD DECLARATIONS
+        // FIELD DECLARATIONS - DEMONSTRATING VALUE VS REFERENCE TYPES
+        // ============================================================
+        // This section demonstrates the fundamental difference between value types and reference types in C#.
+        //
+        // VALUE TYPES (stored on stack, contain actual data):
+        //   - Primitives: int, float, double, bool, char, byte, etc.
+        //   - Enums: ObjKind, GateMult, TokenType
+        //   - Structs: RectangleF, Point, Size, Color (from System.Drawing)
+        //   - When assigned or passed, the ENTIRE VALUE is COPIED
+        //   - Each variable has its own independent copy of the data
+        //
+        // REFERENCE TYPES (stored on heap, variables hold memory addresses):
+        //   - Classes: Button, Panel, Label, TextBox, List<T>, Dictionary<K,V>, string, Image
+        //   - Arrays: string[], int[], LaneObj[]
+        //   - When assigned or passed, only the REFERENCE (pointer) is copied
+        //   - Multiple variables can reference the same object in memory
         // ============================================================
 
-        // ---------- UI ELEMENTS ----------
-        /// <summary>Text box for displaying game event logs</summary>
+        // ---------- UI ELEMENTS (REFERENCE TYPES) ----------
+        // EDUCATIONAL NOTE: All UI controls (Button, TextBox, Panel, Label) are REFERENCE TYPES (classes).
+        // These variables store REFERENCES to objects created in heap memory.
+        // When we add a control to this.Controls, we're passing the reference, not copying the control.
+
+        /// <summary>Text box for displaying game event logs (REFERENCE TYPE)</summary>
         private TextBox? txtLog;
 
-        /// <summary>Main panel where the lane runner game is rendered</summary>
+        /// <summary>Main panel where the lane runner game is rendered (REFERENCE TYPE)</summary>
         private Panel? pnlLaneRunner;
 
-        /// <summary>HUD label displaying score, streak, posture, token, and remaining time</summary>
+        /// <summary>HUD label displaying score, streak, posture, token, and remaining time (REFERENCE TYPE)</summary>
         private Label? lblRunnerHud;
 
-        /// <summary>Button to start a new game run</summary>
+        /// <summary>Button to start a new game run (REFERENCE TYPE)</summary>
         private Button? btnStartRun;
 
         // ---------- LANE RUNNER GAME STATE ----------
-        /// <summary>List of active game objects (Gates, Spinners, Threats) in the lane runner</summary>
+        // ============================================================
+        // REFERENCE TYPE EXAMPLE: List<T> collection
+        // ============================================================
+        // EDUCATIONAL NOTE: List<LaneObj> is a REFERENCE TYPE (generic collection class).
+        // _laneObjs stores a REFERENCE to a List object in heap memory.
+        // The List itself contains references to LaneObj instances (also reference types).
+        // When we pass _laneObjs to a method, we pass the reference, so modifications
+        // in that method affect the same list we're referencing here.
+        /// <summary>List of active game objects (Gates, Spinners, Threats) in the lane runner (REFERENCE TYPE)</summary>
         private readonly List<LaneObj> _laneObjs = new List<LaneObj>();
 
-        /// <summary>Random number generator for spawning and game events</summary>
+        // ============================================================
+        // REFERENCE TYPE EXAMPLE: Random class instance
+        // ============================================================
+        // EDUCATIONAL NOTE: Random is a REFERENCE TYPE (class).
+        // _runnerRng stores a reference to a Random object that maintains internal state
+        // for pseudo-random number generation.
+        /// <summary>Random number generator for spawning and game events (REFERENCE TYPE)</summary>
         private readonly Random _runnerRng = new Random();
 
-        /// <summary>Game loop timer that ticks every 16ms for consistent gameplay</summary>
+        // ============================================================
+        // REFERENCE TYPE EXAMPLE: Timer class
+        // ============================================================
+        // EDUCATIONAL NOTE: System.Windows.Forms.Timer is a REFERENCE TYPE (class).
+        /// <summary>Game loop timer that ticks every 16ms for consistent gameplay (REFERENCE TYPE)</summary>
         private System.Windows.Forms.Timer? _tmrRun;
 
-        /// <summary>True when a game run is actively in progress</summary>
+        // ============================================================
+        // VALUE TYPE EXAMPLES: Primitive types (stored directly on stack)
+        // ============================================================
+        // EDUCATIONAL NOTE: bool, float, and int are all VALUE TYPES (primitives).
+        // These variables store the ACTUAL DATA directly in stack memory.
+        // When you assign one to another (e.g., int x = _score), the VALUE is COPIED.
+        // Each variable has its own independent copy - changing one doesn't affect another.
+
+        /// <summary>True when a game run is actively in progress (VALUE TYPE: bool)</summary>
         private bool _runActive = false;
 
-        /// <summary>Objects scroll down the screen at this speed (pixels/frame); increases with difficulty</summary>
+        /// <summary>Objects scroll down the screen at this speed (pixels/frame); increases with difficulty (VALUE TYPE: float)</summary>
         private float _scrollSpeed = 4.0f;
 
-        /// <summary>Time in milliseconds between each game tick (16ms = ~62.5 FPS)</summary>
+        /// <summary>Time in milliseconds between each game tick (16ms = ~62.5 FPS) (VALUE TYPE: int)</summary>
         private int _tickMs = 16;
 
-        /// <summary>Player's current score accumulated by collecting Gates and Threats with tokens</summary>
+        /// <summary>Player's current score accumulated by collecting Gates and Threats with tokens (VALUE TYPE: int)</summary>
         private int _score = 0;
 
-        /// <summary>Number of consecutive Gates collected without hitting a Threat</summary>
+        /// <summary>Number of consecutive Gates collected without hitting a Threat (VALUE TYPE: int)</summary>
         private int _streak = 0;
 
-        /// <summary>Vehicle health/integrity units (0 = game over); depleted by Spinners and unprotected Threats</summary>
+        /// <summary>Vehicle health/integrity units (0 = game over); depleted by Spinners and unprotected Threats (VALUE TYPE: int)</summary>
         private int _postureUnits = 10;
 
-        /// <summary>Milliseconds remaining in the current run (75 seconds = 75,000 ms to win)</summary>
+        /// <summary>Milliseconds remaining in the current run (75 seconds = 75,000 ms to win) (VALUE TYPE: int)</summary>
         private int _runTimeLeftMs = 75_000;
 
-        /// <summary>Countdown timer for spawning the next wave of objects</summary>
+        /// <summary>Countdown timer for spawning the next wave of objects (VALUE TYPE: int)</summary>
         private int _spawnCooldownMs = 0;
 
-        /// <summary>Elapsed time in current run used to track difficulty progression</summary>
+        /// <summary>Elapsed time in current run used to track difficulty progression (VALUE TYPE: int)</summary>
         private int _difficultyMs = 0;
 
-        /// <summary>Bounding rectangle of the player's vehicle at the bottom of the lane</summary>
+        // ============================================================
+        // VALUE TYPE EXAMPLE: Struct (composite value type)
+        // ============================================================
+        // EDUCATIONAL NOTE: RectangleF is a STRUCT, which is a VALUE TYPE.
+        // Unlike classes, structs are stored directly on the stack (when local) or inline (when in a class).
+        // When you pass a RectangleF to a method, the ENTIRE STRUCT is COPIED.
+        // RectangleF contains four float values (X, Y, Width, Height) all stored together.
+        /// <summary>Bounding rectangle of the player's vehicle at the bottom of the lane (VALUE TYPE: struct)</summary>
         private RectangleF _player;
 
-        /// <summary>Target X coordinate for the player's smooth movement toward the mouse position</summary>
+        /// <summary>Target X coordinate for the player's smooth movement toward the mouse position (VALUE TYPE: float)</summary>
         private float _playerTargetX;
 
-        /// <summary>True when the player is dragging the mouse to move the vehicle</summary>
+        /// <summary>True when the player is dragging the mouse to move the vehicle (VALUE TYPE: bool)</summary>
         private bool _dragging = false;
 
-        /// <summary>Currently active security token (if any) that protects against specific Threats</summary>
+        // ============================================================
+        // VALUE TYPE EXAMPLE: Nullable enum (TokenType?)
+        // ============================================================
+        // EDUCATIONAL NOTE: TokenType is an ENUM, which is a VALUE TYPE (based on int).
+        // TokenType? is a nullable value type - it can hold a TokenType value OR null.
+        // Nullable<T> is actually a struct that wraps a value type, making it nullable.
+        // The actual TokenType value is still stored by value, not by reference.
+        /// <summary>Currently active security token (if any) that protects against specific Threats (VALUE TYPE: nullable enum)</summary>
         private TokenType? _activeToken = null;
 
-        /// <summary>Milliseconds remaining for the active token's protection (6 seconds when granted)</summary>
+        /// <summary>Milliseconds remaining for the active token's protection (6 seconds when granted) (VALUE TYPE: int)</summary>
         private int _tokenTimeLeftMs = 0;
 
-        /// <summary>Font for HUD text (score, streak, time, etc.)</summary>
+        // ============================================================
+        // REFERENCE TYPE EXAMPLES: Font objects
+        // ============================================================
+        // EDUCATIONAL NOTE: Font is a REFERENCE TYPE (class from System.Drawing).
+        // These variables store references to Font objects in heap memory.
+        /// <summary>Font for HUD text (score, streak, time, etc.) (REFERENCE TYPE)</summary>
         private readonly Font _fHud = new Font("Segoe UI", 10, FontStyle.Bold);
 
-        /// <summary>Font for drawing labels on game objects</summary>
+        /// <summary>Font for drawing labels on game objects (REFERENCE TYPE)</summary>
         private readonly Font _fObj = new Font("Segoe UI", 9, FontStyle.Bold);
 
         // ============================================================
-        // UI LAYOUT CONSTANTS
+        // ARRAY TYPE EXAMPLE: String array for lane display names
         // ============================================================
+        // EDUCATIONAL NOTE: This is an explicit ARRAY type demonstrating array usage in C#.
+        // string[] is a REFERENCE TYPE (arrays are always reference types, even for value type elements).
+        // The array object itself lives in heap memory, and this variable stores a reference to it.
+        // This array has a fixed size of 3 elements, indexed from 0 to 2.
+        // We use this array to provide readable names for the three lanes in our game.
+        // Array syntax: Type[] variableName = new Type[size] or Type[] variableName = { element1, element2, ... }
+        /// <summary>Display names for the three lanes (left, center, right) - demonstrates explicit array usage (REFERENCE TYPE: array)</summary>
+        private readonly string[] _laneNames = { "Left Lane", "Center Lane", "Right Lane" };
 
-        /// <summary>Height of the HUD area at the top of the game panel (reserved for score, time, etc.)</summary>
+        // ============================================================
+        // UI LAYOUT CONSTANTS (VALUE TYPES)
+        // ============================================================
+        // EDUCATIONAL NOTE: These constants are all VALUE TYPES (int and float primitives).
+        // const means the value is determined at compile-time and cannot be changed.
+
+        /// <summary>Height of the HUD area at the top of the game panel (reserved for score, time, etc.) (VALUE TYPE: int)</summary>
         private const int HUD_HEIGHT = 52;
 
-        /// <summary>Width of the legend box</summary>
+        /// <summary>Width of the legend box (VALUE TYPE: float)</summary>
         private const float LEGEND_WIDTH = 280f;
 
-        /// <summary>Margin from right edge for legend</summary>
+        /// <summary>Margin from right edge for legend (VALUE TYPE: float)</summary>
         private const float LEGEND_RIGHT_MARGIN = 12f;
 
         // ============================================================
-        // PSEUDO-3D PERSPECTIVE CONSTANTS
+        // PSEUDO-3D PERSPECTIVE CONSTANTS (VALUE TYPES)
         // ============================================================
-
-        /// <summary>Y coordinate of the horizon line (where objects appear smallest)</summary>
+        /// <summary>Y coordinate of the horizon line (where objects appear smallest) (VALUE TYPE: int)</summary>
         private const int HORIZON_Y = HUD_HEIGHT + 28;
 
-        /// <summary>Y coordinate of the bottom of the road (player position area)</summary>
+        /// <summary>Y coordinate of the bottom of the road (player position area) (VALUE TYPE: int property)</summary>
         private int ROAD_BOTTOM_Y => pnlLaneRunner?.Height ?? 520;
 
-        /// <summary>Left edge of road at bottom (widest point)</summary>
+        /// <summary>Left edge of road at bottom (widest point) (VALUE TYPE: int)</summary>
         private const int ROAD_LEFT_BOTTOM = 20;
 
-        /// <summary>Right edge of road at bottom (widest point)</summary>
+        /// <summary>Right edge of road at bottom (widest point) (VALUE TYPE: int property)</summary>
         private int ROAD_RIGHT_BOTTOM => pnlLaneRunner?.Width - 20 ?? 520;
 
-        /// <summary>Left edge of road at horizon (narrowest point)</summary>
+        /// <summary>Left edge of road at horizon (narrowest point) (VALUE TYPE: int)</summary>
         private const int ROAD_LEFT_TOP = 120;
 
-        /// <summary>Right edge of road at horizon (narrowest point)</summary>
+        /// <summary>Right edge of road at horizon (narrowest point) (VALUE TYPE: int property)</summary>
         private int ROAD_RIGHT_TOP => pnlLaneRunner?.Width - 120 ?? 300;
 
         #endregion
@@ -380,18 +495,34 @@ namespace AdasCyberTriageSim
         #region Model (Enums + LaneObj)
 
         // ============================================================
-        // TYPE DEFINITIONS
+        // TYPE DEFINITIONS - ENUMS AND CLASSES
         // ============================================================
 
-        // Enums define the only valid states — this prevents ambiguity and impossible values     
-        /// <summary>Kind of lane object: Gate (collectible), Spinner (attack), or Threat (conditional attack)</summary>
+        // ============================================================
+        // VALUE TYPE EXAMPLE: Enum (enumeration)
+        // ============================================================
+        // EDUCATIONAL NOTE: Enums are VALUE TYPES in C#.
+        // They are stored as integers (int by default) and represent named constants.
+        // ObjKind is based on int: Gate=0, Spinner=1, Threat=2.
+        // When you assign or pass an enum, the INTEGER VALUE is copied, not a reference.
+        // Enums prevent uncertainty and impossible values - only these three values are valid.
+        /// <summary>Kind of lane object: Gate (collectible), Spinner (attack), or Threat (conditional attack) (VALUE TYPE: enum)</summary>
         private enum ObjKind { Gate, Spinner, Threat }
 
-        /// <summary>Point multiplier for Gates: X2 (65% chance) or X3 (35% chance)</summary>
+        // ============================================================
+        // VALUE TYPE EXAMPLE: Enum with explicit integer values
+        // ============================================================
+        // EDUCATIONAL NOTE: GateMult is also a VALUE TYPE (enum).
+        // Here we explicitly set the underlying integer values: X2=2, X3=3.
+        // This enum demonstrates how enums can map meaningful names to specific numeric values.
+        /// <summary>Point multiplier for Gates: X2 (65% chance) or X3 (35% chance) (VALUE TYPE: enum)</summary>
         private enum GateMult { X2 = 2, X3 = 3 }
 
+        // ============================================================
+        // VALUE TYPE EXAMPLE: Enum for security tokens
+        // ============================================================
         /// <summary>
-        /// Security tokens that protect the player from specific Threats.
+        /// Security tokens that protect the player from specific Threats (VALUE TYPE: enum).
         /// - ValidateOtaSignature: Protects against OTA downgrade attacks
         /// - SegmentCanGateway: Protects against gateway pivot/lateral ECU attacks
         /// - LockUdsSession: Protects against UDS brute force attacks
@@ -399,50 +530,66 @@ namespace AdasCyberTriageSim
         /// </summary>
         private enum TokenType
         {
-            ValidateOtaSignature,
-            SegmentCanGateway,
-            LockUdsSession,
-            RotateEcuKeys
+            ValidateOtaSignature,    // = 0 (implicit)
+            SegmentCanGateway,       // = 1
+            LockUdsSession,          // = 2
+            RotateEcuKeys            // = 3
         }
 
+        // ============================================================
+        // REFERENCE TYPE EXAMPLE: Class definition
+        // ============================================================
+        // EDUCATIONAL NOTE: LaneObj is a CLASS, which is a REFERENCE TYPE.
+        // When we create a LaneObj instance with 'new LaneObj()', it's allocated in HEAP memory.
+        // Variables of type LaneObj store REFERENCES (memory addresses) to these objects.
+        // When we add a LaneObj to our _laneObjs list, we're adding a reference, not copying the object.
+        // Multiple references can point to the same LaneObj instance in memory.
+        //
+        // INSIDE THE CLASS: This class contains BOTH value types AND reference types:
+        //   - VALUE TYPES: ObjKind (enum), RectangleF (struct), float, int, GateMult (enum)
+        //   - REFERENCE TYPES: string (Label field)
+        //   - NULLABLE VALUE TYPES: TokenType? (nullable enum)
+        //
+        // When a LaneObj is created, its value type fields are stored INLINE with the object in heap memory,
+        // while its string field stores a REFERENCE to a string object (also in heap).
         /// <summary>
-        /// Represents a scrolling game object in the lanes.
+        /// Represents a scrolling game object in the lanes (REFERENCE TYPE: class).
         /// Objects are Gates (grants points/tokens), Spinners (fleet-wide attacks),
         /// or Threats (lane-specific attacks that require specific tokens to neutralize).
         /// </summary>
         private sealed class LaneObj
         {
-            /// <summary>Type of this object: Gate, Spinner, or Threat</summary>
+            /// <summary>Type of this object: Gate, Spinner, or Threat (VALUE TYPE: enum)</summary>
             public ObjKind Kind;
 
-            /// <summary>Current position and size of the object on the screen</summary>
+            /// <summary>Current position and size of the object on the screen (VALUE TYPE: struct)</summary>
             public RectangleF Rect;
 
-            /// <summary>Vertical velocity (pixels per frame) — always positive (downward)</summary>
+            /// <summary>Vertical velocity (pixels per frame) — always positive (downward) (VALUE TYPE: float)</summary>
             public float Vy;
 
-            /// <summary>Current rotation angle in radians (used for Spinners)</summary>
+            /// <summary>Current rotation angle in radians (used for Spinners) (VALUE TYPE: float)</summary>
             public float Angle;
 
-            /// <summary>Rotation speed in radians per frame (used for Spinners)</summary>
+            /// <summary>Rotation speed in radians per frame (used for Spinners) (VALUE TYPE: float)</summary>
             public float AngVel;
 
-            /// <summary>Label text displayed on the object (e.g., "x3", "CAN Flood", threat name)</summary>
+            /// <summary>Label text displayed on the object (e.g., "x3", "CAN Flood", threat name) (REFERENCE TYPE: string)</summary>
             public string Label = "";
 
             // Gate-only fields
-            /// <summary>[Gate only] Point multiplier for this Gate (X2 or X3)</summary>
+            /// <summary>[Gate only] Point multiplier for this Gate (X2 or X3) (VALUE TYPE: enum)</summary>
             public GateMult Mult;
 
-            /// <summary>[Gate only] Security token granted when this Gate is collected</summary>
+            /// <summary>[Gate only] Security token granted when this Gate is collected (VALUE TYPE: nullable enum)</summary>
             public TokenType? TokenGranted;
 
             // Threat-only fields
-            /// <summary>[Threat only] Required security token to safely neutralize this Threat</summary>
+            /// <summary>[Threat only] Required security token to safely neutralize this Threat (VALUE TYPE: nullable enum)</summary>
             public TokenType? TokenRequired;
 
             // Damage values
-            /// <summary>Posture damage dealt when this object hits the player (0 for Gates)</summary>
+            /// <summary>Posture damage dealt when this object hits the player (0 for Gates) (VALUE TYPE: int)</summary>
             public int Damage;
         }
 
@@ -668,26 +815,40 @@ namespace AdasCyberTriageSim
             pnlLaneRunner.Visible = true;
             pnlLaneRunner.Focus();
 
+            // ============================================================
+            // DEMONSTRATING VALUE TYPE ASSIGNMENT: Copying values directly
+            // ============================================================
+            // EDUCATIONAL NOTE: All these assignments involve VALUE TYPES (int, float, bool, nullable enum).
+            // When we write "_score = 0", we're storing the actual integer value 0 in the _score variable.
+            // There's no reference or pointer involved - the value itself is copied into the variable.
+            // These operations are fast because they're just copying small amounts of data in stack memory.
+
             // Reset game state
             _laneObjs.Clear();
-            _score = 0;
-            _streak = 0;
-            _postureUnits = 10;
+            _score = 0;              // VALUE TYPE assignment (int)
+            _streak = 0;             // VALUE TYPE assignment (int)
+            _postureUnits = 10;      // VALUE TYPE assignment (int)
 
-            _runTimeLeftMs = 75_000;
-            _scrollSpeed = 4.0f;
-            _difficultyMs = 0;
+            _runTimeLeftMs = 75_000; // VALUE TYPE assignment (int)
+            _scrollSpeed = 4.0f;     // VALUE TYPE assignment (float)
+            _difficultyMs = 0;       // VALUE TYPE assignment (int)
 
-            _activeToken = null;
-            _tokenTimeLeftMs = 0;
+            _activeToken = null;     // VALUE TYPE assignment (nullable enum set to null)
+            _tokenTimeLeftMs = 0;    // VALUE TYPE assignment (int)
 
-            // Initialize the player vehicle (36x42 pixels, centered horizontally at bottom)
-            float w = 36, h = 42;
+            // ============================================================
+            // DEMONSTRATING VALUE TYPE STRUCT: RectangleF
+            // ============================================================
+            // EDUCATIONAL NOTE: RectangleF is a STRUCT (VALUE TYPE).
+            // When we create this rectangle, all four float values (X, Y, Width, Height) 
+            // are stored directly in the _player variable's memory location.
+            // No heap allocation or reference is involved.
+            float w = 36, h = 42;  // VALUE TYPE local variables (float)
             _player = new RectangleF(pnlLaneRunner.Width / 2f - w / 2f, pnlLaneRunner.Height - 70, w, h);
             _playerTargetX = _player.X + _player.Width / 2f;
 
             _spawnCooldownMs = 0;
-            _runActive = true;
+            _runActive = true;       // VALUE TYPE assignment (bool)
 
             // Log the start event
             try { AppendLog("ARCADE RUN START → Maintain integrity. Collect controls. Avoid attacks."); } catch { }
@@ -731,6 +892,9 @@ namespace AdasCyberTriageSim
         /// </summary>
         private static string GradeRun(int score, int posture, int streak)
         {
+            // EDUCATIONAL NOTE: All parameters (score, posture, streak) are VALUE TYPES (int).
+            // When this method is called, the VALUES are COPIED from the caller to these parameters.
+            // The return value (string) is a REFERENCE TYPE, but the string itself is immutable.
             int g = score + posture * 40 + streak * 15;
             if (g >= 2200) return "S";
             if (g >= 1600) return "A";
@@ -752,6 +916,7 @@ namespace AdasCyberTriageSim
         {
             if (!_runActive || pnlLaneRunner == null || lblRunnerHud == null) return;
 
+            // EDUCATIONAL NOTE: dt is a VALUE TYPE (int) storing the time delta.
             int dt = _tickMs;
             _runTimeLeftMs -= dt;
             _difficultyMs += dt;
@@ -786,10 +951,19 @@ namespace AdasCyberTriageSim
             float lerp = 0.22f;
             _player.X = _player.X + (targetLeft - _player.X) * lerp;
 
+            // ============================================================
+            // DEMONSTRATING REFERENCE TYPE ITERATION: List<LaneObj>
+            // ============================================================
+            // EDUCATIONAL NOTE: _laneObjs is a REFERENCE TYPE (List<LaneObj>).
+            // 'o' in the loop is also a REFERENCE TYPE variable (LaneObj).
+            // When we write "var o = _laneObjs[i]", we're copying the REFERENCE, not the object.
+            // So 'o' points to the same LaneObj instance in memory as the one in the list.
+            // Modifications to 'o' affect the actual object because they reference the same thing.
+
             // Update all objects (move them downward)
             for (int i = _laneObjs.Count - 1; i >= 0; i--)
             {
-                var o = _laneObjs[i];
+                var o = _laneObjs[i];  // o is a REFERENCE to a LaneObj
                 o.Rect = new RectangleF(o.Rect.X, o.Rect.Y + o.Vy, o.Rect.Width, o.Rect.Height);
 
                 // Rotate Spinners
@@ -840,7 +1014,7 @@ namespace AdasCyberTriageSim
             {
                 var o = _laneObjs[i];
                 RectangleF visualObj = GetVisualRect(o.Rect);
-                
+
                 if (!visualPlayer.IntersectsWith(visualObj)) continue;
 
                 // ===== GATE COLLISION: Always grants points and possibly a token =====
@@ -909,13 +1083,22 @@ namespace AdasCyberTriageSim
         {
             if (pnlLaneRunner == null) return;
 
+            // ============================================================
+            // DEMONSTRATING ARRAY USAGE: float array for lane positions
+            // ============================================================
+            // EDUCATIONAL NOTE: This demonstrates explicit array usage with a numeric type.
+            // float[] is an ARRAY type (REFERENCE TYPE containing value type elements).
+            // The array object lives in heap memory, but each float element (lane0, lane1, lane2)
+            // is stored by value inside the array. Array elements are accessed by index: lanes[0], lanes[1], lanes[2].
+
             // Calculate the three lane positions (divided into thirds with margins)
             float laneW = (pnlLaneRunner.Width - 60) / 3f;
             float lane0 = 20;
             float lane1 = lane0 + laneW;
             float lane2 = lane1 + laneW;
 
-            float[] lanes = { lane0, lane1, lane2 };
+            float[] lanes = { lane0, lane1, lane2 };  // ARRAY TYPE: float[] (reference type with value type elements)
+
             int lanePickA = _runnerRng.Next(0, 3);
             int lanePickB = _runnerRng.Next(0, 3);
 
@@ -972,17 +1155,25 @@ namespace AdasCyberTriageSim
                 _ => "Control"
             };
 
+            // ============================================================
+            // DEMONSTRATING REFERENCE TYPE CREATION: new LaneObj()
+            // ============================================================
+            // EDUCATIONAL NOTE: LaneObj is a REFERENCE TYPE (class).
+            // 'new LaneObj()' allocates memory for a new LaneObj instance in the HEAP.
+            // The variable 'o' stores a REFERENCE (memory address) to that object.
+            // We then set its value type fields (Kind, Mult, Vy, Damage) directly by value.
+            // When we add 'o' to _laneObjs, we're adding the REFERENCE, not copying the object.
             var o = new LaneObj
             {
-                Kind = ObjKind.Gate,
-                Mult = mult,
-                TokenGranted = token,
-                Label = $"{label}\n{control}",
-                Rect = new RectangleF(laneX + 10, y, (pnlLaneRunner.Width - 60) / 3f - 20, 44),
-                Vy = _scrollSpeed,
-                Damage = 0
+                Kind = ObjKind.Gate,           // VALUE TYPE: enum
+                Mult = mult,                    // VALUE TYPE: enum
+                TokenGranted = token,           // VALUE TYPE: enum (in nullable wrapper)
+                Label = $"{label}\n{control}",  // REFERENCE TYPE: string
+                Rect = new RectangleF(laneX + 10, y, (pnlLaneRunner.Width - 60) / 3f - 20, 44),  // VALUE TYPE: struct
+                Vy = _scrollSpeed,              // VALUE TYPE: float
+                Damage = 0                      // VALUE TYPE: int
             };
-            _laneObjs.Add(o);
+            _laneObjs.Add(o);  // Adding a REFERENCE to the list
         }
 
         /// <summary>
@@ -1034,6 +1225,7 @@ namespace AdasCyberTriageSim
         /// </summary>
         private TokenType PickTokenForGate()
         {
+            // EDUCATIONAL NOTE: Explicit cast from int to enum (both value types)
             int r = _runnerRng.Next(4);
             return (TokenType)r;
         }
@@ -1085,15 +1277,15 @@ namespace AdasCyberTriageSim
             {
                 // Left road edge (converges to left-top)
                 DrawPerspectiveLine(g, pen, ROAD_LEFT_TOP, ROAD_LEFT_BOTTOM);
-                
+
                 // Right road edge (converges to right-top)
                 g.DrawLine(pen, ROAD_RIGHT_TOP, HORIZON_Y, ROAD_RIGHT_BOTTOM, ROAD_BOTTOM_Y);
-                
+
                 // Left lane divider (1/3 of road)
                 float laneLeftBottom = ROAD_LEFT_BOTTOM + (ROAD_RIGHT_BOTTOM - ROAD_LEFT_BOTTOM) / 3f;
                 float laneLeftTop = ROAD_LEFT_TOP + (ROAD_RIGHT_TOP - ROAD_LEFT_TOP) / 3f;
                 g.DrawLine(pen, (int)laneLeftTop, HORIZON_Y, (int)laneLeftBottom, ROAD_BOTTOM_Y);
-                
+
                 // Right lane divider (2/3 of road)
                 float laneRightBottom = ROAD_LEFT_BOTTOM + (ROAD_RIGHT_BOTTOM - ROAD_LEFT_BOTTOM) * 2f / 3f;
                 float laneRightTop = ROAD_LEFT_TOP + (ROAD_RIGHT_TOP - ROAD_LEFT_TOP) * 2f / 3f;
@@ -1295,19 +1487,24 @@ namespace AdasCyberTriageSim
             if (pnlLaneRunner == null)
                 return baseRect;
 
+            // EDUCATIONAL NOTE: All local variables here are VALUE TYPES (float).
+            // depthT, scale, cx, cy, newWidth, newHeight all store float values directly.
+            // The return value (RectangleF) is also a VALUE TYPE (struct).
+            // When we return the new RectangleF, the entire struct is COPIED to the caller.
+
             // Calculate depth factor (0 at horizon, 1 at bottom)
             float depthT = Math.Clamp((baseRect.Y - HORIZON_Y) / (ROAD_BOTTOM_Y - HORIZON_Y), 0f, 1f);
-            
+
             // Scale: 0.55 at top (horizon), up to 1.3 at bottom (player level)
             float scale = 0.55f + depthT * 0.75f;
-            
+
             // Scale the rect about its center
             float cx = baseRect.X + baseRect.Width / 2f;
             float cy = baseRect.Y + baseRect.Height / 2f;
-            
+
             float newWidth = baseRect.Width * scale;
             float newHeight = baseRect.Height * scale;
-            
+
             return new RectangleF(cx - newWidth / 2f, cy - newHeight / 2f, newWidth, newHeight);
         }
 
@@ -1319,13 +1516,13 @@ namespace AdasCyberTriageSim
             // Draw shadow below object (offset downward + alpha transparency)
             float shadowOffsetY = visualRect.Height * 0.25f;
             float shadowAlpha = 0.3f;
-            
+
             using (var shadowBrush = new SolidBrush(Color.FromArgb((int)(255 * shadowAlpha), shadowColor)))
             {
-                g.FillRectangle(shadowBrush, 
-                    visualRect.X, 
-                    visualRect.Y + visualRect.Height + 2, 
-                    visualRect.Width, 
+                g.FillRectangle(shadowBrush,
+                    visualRect.X,
+                    visualRect.Y + visualRect.Height + 2,
+                    visualRect.Width,
                     shadowOffsetY);
             }
         }
